@@ -1,6 +1,4 @@
-# YeeLight
-Modified FHEM YeeLight Module for Yeelight Meteorite
-
+# Modified FHEM YeeLight Module for Yeelight Meteorite
 
 define <NAME> YeeLight 192.168.178.150 meteorite
 
