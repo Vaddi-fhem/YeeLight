@@ -7,6 +7,6 @@ Originalmodul von thaliondrambor aus dem FHEM Forum https://forum.fhem.de/index.
 #### Definition
 
 ```
-define <NAME> YeeLight 192.168.178.150 meteorite
-define <NAME>_Ambiente YeeLight 192.168.178.150 meteorite_ambiente
+define <NAME> YeeLight <IP> meteorite
+define <NAME>_Ambiente YeeLight <IP> meteorite_ambiente
 ```
