@@ -9,6 +9,7 @@
 # TODO
 # light functions: timer, schedules
 # scenes
+# autodetect model
 # software bridge (UDP): search request
 
 # help
@@ -105,7 +106,7 @@ YeeLight_Define
 	
 	return "wrong syntax: define [NAME] YeeLight [IP] <MODEL>" if (@a != 3 ) && (@a != 4) && (@a != 5);
 	return "wrong input for IP-address: 'xxx.xxx.xxx.xxx' (0 <= xxx <= 255)" if (!IsValidIP($a[2]));
-	return "wrong input for model: choose one of color, stripe, mono, desklamp, meteorite" if (@a >= 4) && ($a[3] ne "color") && ($a[3] ne "stripe") && ($a[3] ne "mono") && ($a[3] ne "desklamp") && ($a[3] ne "meteorite") && ($a[3] ne "meteorite_ambiente");
+	return "wrong input for model: choose one of color, stripe, mono, desklamp, ceiling1, meteorite, meteorite_ambiente" if (@a >= 4) && ($a[3] ne "color") && ($a[3] ne "stripe") && ($a[3] ne "mono") && ($a[3] ne "desklamp") && ($a[3] ne "ceiling1") && ($a[3] ne "meteorite") && ($a[3] ne "meteorite_ambiente");
 	
 	DevIo_CloseDev($hash);
 	
@@ -125,6 +126,7 @@ YeeLight_Define
 	my $dev = $hash->{HOST}.':'.$hash->{PORT};
 	$hash->{DeviceName} = $dev;
 	$hash->{DEF}		= $hash->{HOST};
+	$hash->{DEF}		= $hash->{HOST} . " " . $hash->{MODEL} if defined($hash->{MODEL});
 			
 	DevIo_OpenDev($hash, 0,, sub(){ 
 		my ($hash, $err) = @_;
@@ -146,17 +148,27 @@ YeeLight_Define
 	$modules{YeeLight}{defptr}{$hash->{ID}} = $hash;
 	
 	my $model;
+	
 	$model = $hash->{MODEL} if defined($hash->{MODEL});
-	$attr{$name}{devStateIcon}	= '{my $power=ReadingsVal($name,"power","off");my $mode=ReadingsVal($name,"color_mode","RGB");if($power eq "off"){Color::devStateIcon($name,"rgb","rgb","power");}else{if($mode eq "RGB"){Color::devStateIcon($name,"rgb","rgb","bright");}elsif($mode eq "color temperature"){Color::devStateIcon($name,"rgb",undef,"bright");}}}' if (!defined($attr{$name}{devStateIcon}) && (!defined($model) || ($model eq "color") || ($model eq "stripe") || ($model eq "meteorite_ambiente")));
-	$attr{$name}{webCmd}		= 'rgb:bright:ct:rgb ffffff:rgb ff0000:rgb 00ff00:rgb 0000ff:on:off'					if (!defined($attr{$name}{webCmd}) && (!defined($model) || ($model eq "color") || ($model eq "stripe") || ($model eq "meteorite_ambiente")));
-	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,1700,10,6500 rgb:colorpicker,RGB'	if (!defined($attr{$name}{widgetOverride}) && (!defined($model) || ($model eq "color") || ($model eq "stripe") || ($model eq "meteorite_ambiente")));
+	$attr{$name}{devStateIcon}	= '{my $power=ReadingsVal($name,"power","off");my $mode=ReadingsVal($name,"color_mode","RGB");if($power eq "off"){Color::devStateIcon($name,"rgb","rgb","power");}else{if($mode eq "RGB"){Color::devStateIcon($name,"rgb","rgb","bright");}elsif($mode eq "color temperature"){Color::devStateIcon($name,"rgb",undef,"bright");}}}' if (!defined($attr{$name}{devStateIcon}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
+	$attr{$name}{webCmd}		= 'rgb:bright:ct:rgb ffffff:rgb ff0000:rgb 00ff00:rgb 0000ff:on:off'					if (!defined($attr{$name}{webCmd}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
+	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,1700,10,6500 rgb:colorpicker,RGB'	if (!defined($attr{$name}{widgetOverride}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
 	$attr{$name}{devStateIcon}	= '{my $power=ReadingsVal($name,"power","off");if($power eq "off"){Color::devStateIcon($name,"dimmer",undef,"power");}else{Color::devStateIcon($name,"dimmer",undef,"bright")}}' if (!defined($attr{$name}{devStateIcon}) && defined($model) && ($model eq "mono" || $model eq "desklamp"));
 	$attr{$name}{webCmd}		= 'bright:on:off'																		if (!defined($attr{$name}{webCmd}) && defined($model) && ($model eq "mono" || $model eq "desklamp"));
 	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100'														if (!defined($attr{$name}{widgetOverride}) && defined($model) && ($model eq "mono" || $model eq "desklamp"));
+	$attr{$name}{devStateIcon}	= '{my $power=ReadingsVal($name,"power","off");if($power eq "off"){Color::devStateIcon($name,"dimmer",undef,"power");}else{Color::devStateIcon($name,"dimmer",undef,"bright")}}' if (!defined($attr{$name}{devStateIcon}) && defined($model) && ($model eq "ceiling1"));
+	$attr{$name}{webCmd}		= 'bright:on:off:ct'																	if (!defined($attr{$name}{webCmd}) && defined($model) && ($model eq "ceiling1"));
+	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,2700,10,6500'						if (!defined($attr{$name}{widgetOverride}) && defined($model) && ($model eq "ceiling1"));
 	
+	#Meteorite
 	$attr{$name}{devStateIcon}	= '{my $power=ReadingsVal($name,"power","off");if($power eq "off"){Color::devStateIcon($name,"dimmer",undef,"power");}else{Color::devStateIcon($name,"dimmer",undef,"bright")}}' if (!defined($attr{$name}{devStateIcon}) && defined($model) && ($model eq "meteorite"));
-	$attr{$name}{webCmd}		= 'bright:ct:on:off'																		if (!defined($attr{$name}{webCmd}) && defined($model) && ($model eq "meteorite" ));
-	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,2700,10,6500'														if (!defined($attr{$name}{widgetOverride}) && defined($model) && ($model eq "meteorite"));
+	$attr{$name}{webCmd}		= 'bright:ct:on:off'																	if (!defined($attr{$name}{webCmd}) && defined($model) && ($model eq "meteorite"));
+	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,2700,10,6500'						if (!defined($attr{$name}{widgetOverride}) && defined($model) && ($model eq "meteorite"));
+	
+	#Meteorite Ambiente
+		$attr{$name}{devStateIcon}	= '{my $power=ReadingsVal($name,"power","off");my $mode=ReadingsVal($name,"color_mode","RGB");if($power eq "off"){Color::devStateIcon($name,"rgb","rgb","power");}else{if($mode eq "RGB"){Color::devStateIcon($name,"rgb","rgb","bright");}elsif($mode eq "color temperature"){Color::devStateIcon($name,"rgb",undef,"bright");}}}' if (!defined($attr{$name}{devStateIcon}) && (!defined($model) || ($model eq "meteorite_ambiente")));
+	$attr{$name}{webCmd}		= 'rgb:bright:ct:rgb ffffff:rgb ff0000:rgb 00ff00:rgb 0000ff:on:off'					if (!defined($attr{$name}{webCmd}) && (!defined($model) || ($model eq "meteorite_ambiente")));
+	$attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,1700,10,6500 rgb:colorpicker,RGB'	if (!defined($attr{$name}{widgetOverride}) && (!defined($model) || ($model eq "meteorite_ambiente")));
 	
 	my $list = "";
 	# Commands supported by every yeelight
@@ -174,22 +186,30 @@ YeeLight_Define
 	$list .= "reopen:noArg ";
 	$list .= "statusrequest:noArg ";
 	# Commands supported by color and led stripe
-	if (($model eq "color") || ($model eq "stripe") || ($model eq "meteorite") || ($model eq "meteorite_ambiente") || !defined($model))
+	if (($model eq "color") || ($model eq "stripe") || ($model eq "meteorite_ambiente") || !defined($model))
 	{
 		$list .= "hsv ";
 		$list .= "hue ";
 		$list .= "sat ";
 		$list .= "rgb ";
 		$list .= "color ";
-		$list .= "ct ";
 		$list .= "start_cf ";
 		$list .= "stop_cf ";
 		$list .= "scene ";
 		$list .= "circlecolor:noArg ";
 		$list .= "blink ";
 	}
+	# Commands supported by ceiling1
+	if (($model eq "ceiling1") || ($model eq "meteorite") || !defined($model))
+	{
+		$list .= "active_mode:daylight,nightlight ";
+	}
+	# Commands supported by color, led stripe and ceiling1
+	if (($model eq "color") || ($model eq "stripe") || ($model eq "ceiling1") || ($model eq "meteorite") || ($model eq "meteorite_ambiente") || !defined($model))
+	{
+		$list .= "ct ";
+	}
 	
-
 	$hash->{helper}->{CommandSet} = $list;
 	
 	return undef;
@@ -314,38 +334,47 @@ YeeLight_Set
 	my $model = $hash->{MODEL};
 	
 	my $list = $hash->{helper}->{CommandSet};
-	
-	if (lc $cmd eq 'on'
-		|| lc $cmd eq 'off'
-		|| lc $cmd eq 'toggle'
-		|| lc $cmd eq 'on-for-timer'
-		|| lc $cmd eq 'off-for-timer'
-		|| lc $cmd eq 'intervals'
-		|| lc $cmd eq 'bright'
-		|| lc $cmd eq 'dimup'
-		|| lc $cmd eq 'dimdown'
-		|| lc $cmd eq 'name'
-		|| lc $cmd eq 'default'
-		|| lc $cmd eq 'reopen'
-		|| lc $cmd eq 'statusrequest'
-		|| lc $cmd eq 'raw'
-		|| lc $cmd eq 'flush'
-		|| ((lc $cmd eq 'hsv'
-		|| lc $cmd eq 'hue'
-		|| lc $cmd eq 'sat'
-		|| lc $cmd eq 'rgb'
-		|| lc $cmd eq 'color'
-		|| lc $cmd eq 'ct'
-		|| lc $cmd eq 'start_cf'
-		|| lc $cmd eq 'stop_cf'
-		|| lc $cmd eq 'scene'
-		|| lc $cmd eq 'circlecolor'
-		|| lc $cmd eq 'blink')
+
+	if (lc $cmd eq "on"
+		|| lc $cmd eq "off"
+		|| lc $cmd eq "toggle"
+		|| lc $cmd eq "on-for-timer"
+		|| lc $cmd eq "off-for-timer"
+		|| lc $cmd eq "intervals"
+		|| lc $cmd eq "bright"
+		|| lc $cmd eq "dimup"
+		|| lc $cmd eq "dimdown"
+		|| lc $cmd eq "name"
+		|| lc $cmd eq "default"
+		|| lc $cmd eq "reopen"
+		|| lc $cmd eq "statusrequest"
+		|| lc $cmd eq "raw"
+		|| lc $cmd eq "flush"
+		|| ((lc $cmd eq "ct"
+		&& (!defined($model))
+		|| $model eq "stripe"
+		|| $model eq "color"
+		|| $model eq "ceiling1"
+		|| $model eq "meteorite"
+		|| $model eq "meteorite_ambiente"))
+		|| ((lc $cmd eq "hue"
+		|| lc $cmd eq "sat"
+		|| lc $cmd eq "rgb"
+		|| lc $cmd eq "color"
+		|| lc $cmd eq "hsv"
+		|| lc $cmd eq "start_cf"
+		|| lc $cmd eq "stop_cf"
+		|| lc $cmd eq "scene"
+		|| lc $cmd eq "circlecolor"
+		|| lc $cmd eq "blink")
 		&& (!defined($model)
 		|| $model eq "stripe"
 		|| $model eq "color"
-		|| $model eq "meteorite"
-		|| $model eq "meteorite_ambiente")))
+		|| $model eq "meteorite_ambiente"))
+		|| (lc $cmd eq "active_mode"
+		&& (!defined($model)
+		|| $model eq "ceiling1"
+		|| $model eq "meteorite" )))
 	{
 	    Log3 $name, 3, "YeeLight $name - set $name $cmd ".join(" ", @val);
 		return YeeLight_SelectSetCmd($hash, $cmd, @val);
@@ -360,6 +389,7 @@ YeeLight_SelectSetCmd
 	my ($hash, $cmd, @args) = @_;
 	my $descriptor = '';
 	my $name = $hash->{NAME};
+	
 	
 	
 	my $list = $hash->{helper}->{CommandSet};
@@ -387,7 +417,6 @@ YeeLight_SelectSetCmd
 	{
 		Log3 $name, 5, "$name: ein oder aus";
 		my $sCmd;
-
 		$sCmd->{'method'}		= "set_power";							# method:set_power
 		$sCmd->{'params'}->[0]	= $cmd;									# on/off
 		$sCmd->{'params'}->[2]	= $args[0] if (defined($args[0]));		# ramp time
@@ -839,7 +868,18 @@ YeeLight_SelectSetCmd
 		$sCmd->{'params'}->[0] = "circle";
 		$sCmd->{'params'}->[1] = "color";
 	}
-	
+
+	elsif (lc $cmd eq "active_mode")
+	{
+		return "usage: set $name $cmd mode [ramptime]" if ($cnt != 1) && ($cnt != 2);
+		my $sCmd;
+		$sCmd->{'method'} = "set_power";
+		$sCmd->{'params'}->[0]	= "on";
+		$sCmd->{'params'}->[2]	= $args[1] if (defined($args[1]));		# ramp time
+		$sCmd->{'params'}->[3]	= 1	if lc $args[0] eq "daylight";
+		$sCmd->{'params'}->[3]	= 5	if lc $args[0] eq "nightlight";
+		YeeLight_SendCmd($hash,$sCmd,$cmd,2);
+	}
 	else
 	{
 		return SetExtensions($hash, $list, $name, $cmd, @args);
@@ -857,11 +897,10 @@ YeeLight_SendCmd
 	my $bHash		= $modules{YeeLightBridge}{defptr};
 	my $bName		= $bHash->{NAME};
 	my $defaultRamp = 0;
-	
-	my $model = $hash->{MODEL};
-	
 	$defaultRamp	= $attr{$bName}{defaultramp} if (defined($bName) && $attr{$bName}{defaultramp});
 	$defaultRamp	= $attr{$name}{defaultramp} if ($attr{$name}{defaultramp});
+	
+	my $model = $hash->{MODEL};
 	
 	if (lc $cmd eq "name"
 		|| lc $cmd eq "default"
@@ -885,24 +924,26 @@ YeeLight_SendCmd
 		$sCmd->{'params'}->[$rCnt - 1] = "smooth";						# flow
 		$sCmd->{'params'}->[$rCnt] = $defaultRamp + 0;					# force default ramp time to be int
 	}
-	elsif ($sCmd->{'method'} eq "set_ct_abx")
+	elsif ($sCmd->{'method'} eq "set_ct_abx" || $sCmd->{'method'} eq "active_mode")
 	{
 
 		$sCmd->{'params'}->[$rCnt - 1] = "sudden";						# no flow
 		$sCmd->{'params'}->[$rCnt] = 0;									# no flow
 	}
 	
-	YeeLight_IsOn($hash) if (lc $cmd ne "statusrequest") && (lc $cmd ne "on") && (lc $cmd ne "off") && (lc $cmd ne "toggle") && (lc $cmd ne "name");
+	YeeLight_IsOn($hash) if (lc $cmd ne "statusrequest") && (lc $cmd ne "on") && (lc $cmd ne "off") && (lc $cmd ne "toggle") && (lc $cmd ne "name") && (lc $cmd ne "active_mode");
 	
 	$sCmd->{'id'}	= YeeLight_Bridge_GetID($hash);
 	
-	
+	#Meteorite Ambiente check
 	if ($model eq "meteorite_ambiente")
 	{
 		 $sCmd->{'method'} = "bg_".$sCmd->{'method'};
 	}
 	
 	my $send		= encode_json($sCmd);
+	
+
 	
 	DevIo_OpenDev($hash, 0,, sub(){
 		my ($hash, $err) = @_;
@@ -923,7 +964,19 @@ YeeLight_StatusRequest
 	my ($hash)	= @_;
 	my $name	= $hash->{NAME};
 	my $msgID	= YeeLight_Bridge_GetID($hash);
-	my $send	= '{"id":'.$msgID.',"method":"get_prop","params":["power","bright","ct","rgb","hue","sat","color_mode","flowing","delayoff","flow_params","music_on","name"]}';
+	
+	
+	my $send	= '{"id":'.$msgID.',"method":"get_prop","params":["power","bright","ct","rgb","hue","sat","color_mode","flowing","delayoff","flow_params","music_on","name","active_mode","nl_br"]}';
+	
+	#Meteorite Ambiente check
+	if ($hash->{MODEL} eq "meteorite")
+	{
+		$send	= '{"id":'.$msgID.',"method":"get_prop","params":["main_power","bright","ct","rgb","hue","sat","color_mode","flowing","delayoff","flow_params","music_on","name","active_mode","nl_br"]}';
+	}
+	elsif ($hash->{MODEL} eq "meteorite_ambiente")
+	{
+		$send	= '{"id":'.$msgID.',"method":"get_prop","params":["bg_power","bg_bright","bg_ct","bg_rgb","bg_hue","bg_sat","bg_color_mode","bg_flowing","bg_delayoff","bg_flow_params","bg_music_on","name","bg_active_mode"]}';
+	}
 	
 	DevIo_OpenDev($hash, 0,, sub(){ 
 		my ($hash, $err) = @_;
@@ -1123,6 +1176,7 @@ YeeLight_Parse
 {
 	my ($hash,$json) = @_;
 	my $name = $hash->{NAME};
+	my $model = $hash->{MODEL};
 	
 	my $rgb		= undef;
 	my $hexrgb	= undef;
@@ -1142,6 +1196,7 @@ YeeLight_Parse
 	my $colormode	= undef;
 	my $colorflow	= undef;
 	my $musicmode	= undef;
+	my $activemode	= undef;
 	
 	if (defined($json->{'params'}->{'color_mode'}))
 	{
@@ -1159,8 +1214,59 @@ YeeLight_Parse
 		$musicmode	= "off"					if ($json->{'params'}->{'music_on'} eq 0);
 		$musicmode	= "on"					if ($json->{'params'}->{'music_on'} eq 1);
 	}
+	if (defined($json->{'params'}->{'active_mode'}))
+	{
+		$activemode = "daylight"			if ($json->{'params'}->{'active_mode'} eq 0);
+		$activemode = "nightlight"			if ($json->{'params'}->{'active_mode'} eq 1);
+	}
 	
+	
+		
 	readingsBeginUpdate($hash);
+	
+	#Meteorite Ambiente check
+	
+	if ($model eq "meteorite_ambiente")
+	{
+		readingsBulkUpdate($hash,"power",$json->{'params'}->{'bg_power'})				if defined($json->{'params'}->{'bg_power'});
+		readingsBulkUpdate($hash,"bright",$json->{'params'}->{'bg_bright'})			if defined($json->{'params'}->{'bg_bright'});
+		readingsBulkUpdate($hash,"ct",$json->{'params'}->{'bg_ct'})					if defined($json->{'params'}->{'bg_ct'});
+		readingsBulkUpdate($hash,"rgb",$hexrgb)										if defined($hexrgb);
+		readingsBulkUpdate($hash,"rgb_blue",$b)										if defined($b);	
+		readingsBulkUpdate($hash,"rgb_green",$g)									if defined($g);
+		readingsBulkUpdate($hash,"rgb_red",$r)										if defined($r);
+		readingsBulkUpdate($hash,"hue",$json->{'params'}->{'bg_hue'})					if defined($json->{'params'}->{'bg_hue'});
+		readingsBulkUpdate($hash,"sat",$json->{'params'}->{'bg_sat'})					if defined($json->{'params'}->{'bg_sat'});
+		readingsBulkUpdate($hash,"color_mode",$colormode)							if defined($colormode);
+		readingsBulkUpdate($hash,"color_flow",$colorflow)							if defined($colorflow);
+		readingsBulkUpdate($hash,"sleeptimer",$json->{'params'}->{'bg_delayoff'})		if defined($json->{'params'}->{'bg_delayoff'});
+		readingsBulkUpdate($hash,"flow_params",$json->{'params'}->{'bg_flow_params'})	if defined($json->{'params'}->{'bg_flow_params'});
+		readingsBulkUpdate($hash,"music_mode",$musicmode)							if defined($musicmode);
+		readingsBulkUpdate($hash,"name",$json->{'params'}->{'name'})				if defined($json->{'params'}->{'name'});
+		readingsBulkUpdate($hash,"active_mode", $activemode)						if defined($activemode);
+		
+
+	}
+	elsif ($model eq "meteorite")
+	{
+		readingsBulkUpdate($hash,"power",$json->{'params'}->{'main_power'})				if defined($json->{'params'}->{'main_power'});
+		readingsBulkUpdate($hash,"bright",$json->{'params'}->{'bright'})			if defined($json->{'params'}->{'bright'});
+		readingsBulkUpdate($hash,"ct",$json->{'params'}->{'ct'})					if defined($json->{'params'}->{'ct'});
+		readingsBulkUpdate($hash,"rgb",$hexrgb)										if defined($hexrgb);
+		readingsBulkUpdate($hash,"rgb_blue",$b)										if defined($b);	
+		readingsBulkUpdate($hash,"rgb_green",$g)									if defined($g);
+		readingsBulkUpdate($hash,"rgb_red",$r)										if defined($r);
+		readingsBulkUpdate($hash,"hue",$json->{'params'}->{'hue'})					if defined($json->{'params'}->{'hue'});
+		readingsBulkUpdate($hash,"sat",$json->{'params'}->{'sat'})					if defined($json->{'params'}->{'sat'});
+		readingsBulkUpdate($hash,"color_mode",$colormode)							if defined($colormode);
+		readingsBulkUpdate($hash,"color_flow",$colorflow)							if defined($colorflow);
+		readingsBulkUpdate($hash,"sleeptimer",$json->{'params'}->{'delayoff'})		if defined($json->{'params'}->{'delayoff'});
+		readingsBulkUpdate($hash,"flow_params",$json->{'params'}->{'flow_params'})	if defined($json->{'params'}->{'flow_params'});
+		readingsBulkUpdate($hash,"music_mode",$musicmode)							if defined($musicmode);
+		readingsBulkUpdate($hash,"name",$json->{'params'}->{'name'})				if defined($json->{'params'}->{'name'});
+		readingsBulkUpdate($hash,"active_mode", $activemode)						if defined($activemode);
+		readingsBulkUpdate($hash,"nl_br", $json->{'params'}->{'nl_br'})				if defined($json->{'params'}->{'nl_br'});
+	}else{
 		readingsBulkUpdate($hash,"power",$json->{'params'}->{'power'})				if defined($json->{'params'}->{'power'});
 		readingsBulkUpdate($hash,"bright",$json->{'params'}->{'bright'})			if defined($json->{'params'}->{'bright'});
 		readingsBulkUpdate($hash,"ct",$json->{'params'}->{'ct'})					if defined($json->{'params'}->{'ct'});
@@ -1176,6 +1282,10 @@ YeeLight_Parse
 		readingsBulkUpdate($hash,"flow_params",$json->{'params'}->{'flow_params'})	if defined($json->{'params'}->{'flow_params'});
 		readingsBulkUpdate($hash,"music_mode",$musicmode)							if defined($musicmode);
 		readingsBulkUpdate($hash,"name",$json->{'params'}->{'name'})				if defined($json->{'params'}->{'name'});
+		readingsBulkUpdate($hash,"active_mode", $activemode)						if defined($activemode);
+		readingsBulkUpdate($hash,"nl_br", $json->{'params'}->{'nl_br'})				if defined($json->{'params'}->{'nl_br'});
+	}
+		
 	readingsEndUpdate($hash,1);
 	
 	Log3 $name, 3, "$name updated readings.";
@@ -1204,6 +1314,7 @@ YeeLight_ParseStatusRequest
 	my $colormode;
 	my $colorflow;
 	my $musicmode;
+	my $activemode;
 	$colormode	= "RGB"					if ($answer->{'result'}->[6] eq 1);
 	$colormode	= "color temperature"	if ($answer->{'result'}->[6] eq 2);
 	$colormode	= "HSV" 				if ($answer->{'result'}->[6] eq 3);
@@ -1211,6 +1322,8 @@ YeeLight_ParseStatusRequest
 	$colorflow	= "on"					if ($answer->{'result'}->[7] eq 1);
 	$musicmode	= "off"					if ($answer->{'result'}->[10] eq 0);
 	$musicmode	= "on"					if ($answer->{'result'}->[10] eq 1);
+	$activemode	= "daylight"			if ($answer->{'result'}->[12] eq 0);
+	$activemode = "nightlight"			if ($answer->{'result'}->[12] eq 1);
 	
 	if ($answer)
 	{
@@ -1230,6 +1343,8 @@ YeeLight_ParseStatusRequest
 			readingsBulkUpdate($hash,"flow_params",$answer->{'result'}->[9]);
 			readingsBulkUpdate($hash,"music_mode",$musicmode);
 			readingsBulkUpdate($hash,"name",$answer->{'result'}->[11]);
+			readingsBulkUpdate($hash,"active_mode", $activemode);
+			readingsBulkUpdate($hash,"nl_br", $answer->{'result'}->[13]);
 		readingsEndUpdate($hash,1);
 		
 		Log3 $name, 3, "$name full statusrequest";
